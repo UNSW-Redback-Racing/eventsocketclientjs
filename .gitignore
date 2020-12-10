@@ -1,0 +1,9 @@
+node_modules/
+out/examples/client.js
+out/examples/client.js.map
+out/src/Connection.js
+out/src/Connection.js.map
+out/src/EventSocket.js
+out/src/EventSocket.js.map
+out/src/Message.js
+out/src/Message.js.map
