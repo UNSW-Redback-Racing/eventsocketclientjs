@@ -1,6 +1,7 @@
 // All message related classes
 
 import { Message as MessageImp } from './Message_pb';
+import { Connection } from './Connection';
 
 // Contains the size and id (eventid) of messages
 interface MessageHeader<T> {};
@@ -11,8 +12,6 @@ interface Message<T> {};
 // A message that is owned by a Connection
 interface OwnedMessage<T> {};
 
-import { Connection } from './Connection';
-import { EnumType } from 'typescript';
 
 enum Config {
     Forward, Forwarded, BroadcastAll, BroadcastRoom, Broadcasted,
@@ -21,61 +20,68 @@ enum Config {
 };
 
 class MessageHeader<T> {
-    id: number;
+    
+    id: T;
     config: Config;
     size: number;
+    constructor(id: T, config: Config, size: number){
+        this.id = id;
+        this.config = config;
+        this.size = size;
+    }
 };
+
 
 class Message<T> {
     private header: MessageHeader<T>;
     private messageImp: MessageImp;
-    private Events: T;
 
-    constructor(data?: string, id?: number, config?: Config)
+    constructor(data?: string, id?: T, config?: Config)
     {
-        //check if id is a valid enum
-        if (this.Events[id] === 'undefined')
-        {
-            throw new RangeError("id is not a valid within enum");
-        }
-        
         this.messageImp = new MessageImp();
-        
-        if (! (typeof data === 'undefined' || data === null))
+
+        // Set the data, config and id to a default value if not available
+        let conf: Config = Config['None'];
+        let payload: string = "";
+        let eventid: number = 0;
+
+        if (typeof config != 'undefined' && config != null)
         {
-            this.messageImp.setBody(data);
+            conf = config
         }
         
-        // Set the id if available
-        if (typeof id === 'undefined' || id  === null){
-            this.messageImp.getHeader().setId(id);
+        if (typeof data != 'undefined' && data != null)
+        {
+            payload = data;
         }
         
-        // Set the config to a default value if not available
-        if (typeof config === 'undefined' || config === null)
+        if (typeof id != 'undefined' && id != null)
         {
-            this.messageImp.getHeader().setConfig(Config['None']);
-        }else
-        {
-            this.messageImp.getHeader().setConfig(config);   
+            eventid = id as unknown as number;
         }
 
-        this.header.size = Object.keys(data).length;
-        this.messageImp.getHeader().setSize(this.header.size);
-
+        this.header = new MessageHeader<T>(eventid as unknown as T, conf, payload.length);
+        this.messageImp.setBody(payload);
+        this.messageImp.getHeader().setId(eventid);
+        this.messageImp.getHeader().setConfig(conf as unknown as number);
+        this.messageImp.getHeader().setSize(payload.length);
     }
 
     size(): number {
         return this.header.size;
     }
 
-    data(): string {
+    data(): string | undefined {
         return this.messageImp.getBody();
     }
     
-    setID(id: number) {
+    setData(data: string) {
+        this.messageImp.setBody(data);
+    }
+    
+    setID(id: T) {
         this.header.id = id;
-        this.messageImp.getHeader().setId(id);
+        this.messageImp.getHeader().setId(id as unknown as number);
     }
 
     setConfig(config: Config) {
@@ -83,29 +89,45 @@ class Message<T> {
         this.messageImp.getHeader().setConfig(config);
     }
 
-    getID(): number {
+    ID(): T {
         return this.header.id;
     }
 
-    getConfig(): Config {
+    Config(): Config {
         return this.header.config;
     } 
 
-    serializeBinary(): any {
+    serializeBinary(): Uint8Array {
         return this.messageImp.serializeBinary();
     } 
 
-    deserializeBinary(data: any) {
+    deserializeBinary(data: Uint8Array) {
+
         this.messageImp = MessageImp.deserializeBinary(data);
-        this.header.size = this.messageImp.getHeader().getSize();
-        this.header.id = this.messageImp.getHeader().getId();
-        this.header.config = this.messageImp.getHeader().getConfig();
+        const size: number | undefined = this.messageImp.getHeader().getSize();
+        const id: number | undefined = this.messageImp.getHeader().getId();
+        const config: number | undefined = this.messageImp.getHeader().getConfig();
+
+        if (size === undefined || id === undefined || config === undefined)
+        {
+            throw Error('Invalid size, id or config');
+        }
+
+        this.header.size = size;
+        this.header.id =  id as unknown as T;
+        this.header.config = config as unknown as Config; 
     }
 };
 
 class OwnedMessage<T> {
+
     message: Message<T>;
     owner: Connection<T>;
+    constructor(message: Message<T>, owner: Connection<T>)
+    {
+        this.message = message;
+        this.owner = owner;
+    }
 };
 
-export { Message, OwnedMessage };
+export { Message, OwnedMessage, Config};

@@ -2,54 +2,89 @@
 
 interface Connection<T> {}
 
-import { Message, OwnedMessage } from './Message';
+import WebSocket = require('isomorphic-ws');
+
+import { Message, Config} from './Message';
 
 
 type IOnMessage<T> = (message: Message<T>) => void;
 type IOnEvent<T> = (message: Message<T>) => void;
-type IOnClose<T> = (event: CloseEvent) => void;
+type IOnConnect<T> = (event: WebSocket.OpenEvent) => void;
+type IOnClose<T> = (event: WebSocket.CloseEvent) => void;
+
+
+// Util used to convert string to arraybuffer
+function stringToAB(str: string){
+    var buf = new ArrayBuffer(str.length); // 1 bytes for each char
+    var bufView = new Uint8Array(buf);
+    for (var i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
 
 class Connection<T> {
     
-    private ws: WebSocket;
+    private ws: WebSocket | undefined;
 
+    // Holds a message until it is ready to be processed
     private temporaryMessage: Message<T>;
 
-    public OnMessage: IOnMessage<T>;
-    public OnClose: IOnClose<T>;
+    // All event callbacks
+    private eventCallbacks: Map<T, IOnEvent<T>>;
 
-    constructor() {}
+    public OnMessage: IOnMessage<T> | undefined;
+    public OnClose: IOnClose<T> | undefined;
+    public OnConnect: IOnConnect<T> | undefined;
+    
+    constructor() {
+        this.temporaryMessage = new Message<T>();
+        this.eventCallbacks = new Map();
+    }
 
     connectToServer(host: string, port: number): void {
         
         // Create a websocket 
         this.ws = new WebSocket("ws://" + host + ":" + port);
-        
-        this.ws.onopen = (ev: Event) => {
+        this.ws.binaryType = "arraybuffer";
+        this.ws.onopen = (ev: WebSocket.OpenEvent) => {
             this.configure();
+            if (this.OnConnect)
+            {
+                this.OnConnect(ev);
+            }
         }
 
     }
 
     // Setup the required websocket callbacks
-    configure(): void {
-        this.ws.onmessage = (ev:MessageEvent<any>) => {
+    private configure(): void {
+        if (this.ws === undefined || this.ws === null)
+        {
+            return;
+        }
+
+        this.ws.onmessage = (ev:WebSocket.MessageEvent) => {
             
             // Message object to contain data
             const message = new Message<T>(); 
             
-            // get the data from the payload
-            message.deserializeBinary(ev.data);
+            message.deserializeBinary(new Uint8Array(stringToAB(ev.data.toString())));
             
-            // call the on message function if it exists
-            if (!(typeof this.OnMessage === 'undefined' || this.OnMessage === null))
+            // find if there are any event callbacks assigned for this event
+            if (this.eventCallbacks.get(message.ID()) != undefined 
+                && message.ID() != undefined)
+            {
+                this.eventCallbacks.get(message.ID())?.(message);
+
+            }else if (!(typeof this.OnMessage === 'undefined' || this.OnMessage === null))
             {
                 this.OnMessage(message);
             }
 
         }
 
-        this.ws.onclose = (ev: CloseEvent) => {
+        this.ws.onclose = (ev: WebSocket.CloseEvent) => {
             if (!(typeof this.OnClose === 'undefined' || this.OnMessage === null))
             {
                 this.OnClose(ev);
@@ -57,11 +92,42 @@ class Connection<T> {
         }
     }
 
+    public OnEvent(event: T, callback: IOnEvent<T>)
+    {
+        this.eventCallbacks.set(event, callback);
+    }
+
+    public send(message: Message<T>)
+    {
+        this.ws?.send(message.serializeBinary());
+    }
+
+    public broadcast(message: Message<T>)
+    {
+        message.setConfig(Config.BroadcastAll);
+        this.send(message);
+    }
+
+    public broadcastRoom(message: Message<T>, roomid: number)
+    {
+        let payload: string | undefined = message.data();
+        
+        if (!payload)
+        {
+            payload = "";
+        }
+
+        message.setData(payload + roomid);
+        
+    }
+    public close()
+    {
+        this.ws?.close();
+    }
+
 };
 
-
 export { Connection };
-export * from './Message';
 
 
 
