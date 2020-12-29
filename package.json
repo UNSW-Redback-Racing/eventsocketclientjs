@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Event based async networking framework for client applications",
   "files": [
-    "out"
+    "out",
+    "types"
   ],
   "scripts": {
     "test": "jest --detectOpenHandles",
