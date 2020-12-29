@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/Yousif-CS/eventsocketclientjs#readme",
   "devDependencies": {
+    "@types/google-protobuf": "^3.7.4",
     "@types/jest": "^26.0.18",
     "clean-webpack-plugin": "^3.0.0",
     "html-webpack-plugin": "^4.5.0",
