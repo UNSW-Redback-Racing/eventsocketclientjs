@@ -36,9 +36,6 @@ class Connection<T> {
     
     private ws: WebSocket | undefined;
 
-    // Holds a message until it is ready to be processed
-    private temporaryMessage: Message<T>;
-
     // All event callbacks
     private eventCallbacks: Map<T, IOnEvent<T>>;
 
@@ -51,7 +48,6 @@ class Connection<T> {
     public OnForwarded: IOnForwarded<T> | undefined;
 
     constructor() {
-        this.temporaryMessage = new Message<T>();
         this.eventCallbacks = new Map();
     }
 
@@ -182,6 +178,9 @@ class Connection<T> {
         this.send(message);
     }
 
+    /**
+     * Broadcast a message to all clients in room with roomid
+     */
     public broadcastRoom(message: Message<T>, roomid: number)
     {
         let payload: string | undefined = message.data();
