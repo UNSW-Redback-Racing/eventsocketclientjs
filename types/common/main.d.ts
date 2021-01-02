@@ -40,5 +40,13 @@ export class Connection<T> {
     public createRoom();
     public joinRoom(roomid: number);
     public isConnected(): boolean;
-    public close();
+	public close();
+
+    public OnMessage: IOnMessage<T> | undefined;
+    public OnClose: IOnClose<T> | undefined;
+    public OnConnect: IOnConnect<T> | undefined;
+    public OnBroadCast: IOnForwarded<T> | undefined;
+    public OnRoomCreated: IOnRoomCreated<T> | undefined;
+    public OnRoomJoined: IOnEvent<T> | undefined;
+    public OnForwarded: IOnForwarded<T> | undefined;
 }
