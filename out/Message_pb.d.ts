@@ -1,5 +1,5 @@
 // package: EventSocket
-// file: Message.proto
+// file: src/Message.proto
 
 import * as jspb from "google-protobuf";
 
@@ -45,8 +45,10 @@ export class Message extends jspb.Message {
 
   hasBody(): boolean;
   clearBody(): void;
-  getBody(): string | undefined;
-  setBody(value: string): void;
+  getBody(): Uint8Array | string;
+  getBody_asU8(): Uint8Array;
+  getBody_asB64(): string;
+  setBody(value: Uint8Array | string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Message.AsObject;
@@ -61,7 +63,7 @@ export class Message extends jspb.Message {
 export namespace Message {
   export type AsObject = {
     header: MessageHeader.AsObject,
-    body?: string,
+    body: Uint8Array | string,
   }
 }
 

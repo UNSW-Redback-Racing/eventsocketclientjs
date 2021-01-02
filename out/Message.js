@@ -47,7 +47,7 @@ var Message = /** @class */ (function () {
             eventid = id;
         }
         this.header = new MessageHeader(eventid, conf, payload.length);
-        this.messageImp.setBody(payload);
+        this.setData(payload);
         this.messageImp.getHeader().setId(eventid);
         this.messageImp.getHeader().setConfig(conf);
         this.messageImp.getHeader().setSize(payload.length);
@@ -55,10 +55,17 @@ var Message = /** @class */ (function () {
     Message.prototype.size = function () {
         return this.header.size;
     };
-    Message.prototype.data = function () {
-        return this.messageImp.getBody();
+    Message.prototype.data = function (bytes) {
+        if (bytes === void 0) { bytes = false; }
+        if (bytes) {
+            return this.messageImp.getBody();
+        }
+        return new TextDecoder().decode(this.messageImp.getBody());
     };
     Message.prototype.setData = function (data) {
+        if (typeof data === 'string' || data instanceof String) {
+            data = new TextEncoder().encode(data);
+        }
         this.messageImp.setBody(data);
     };
     Message.prototype.setID = function (id) {

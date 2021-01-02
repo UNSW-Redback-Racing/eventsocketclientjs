@@ -61,7 +61,7 @@ class Message<T> {
         }
 
         this.header = new MessageHeader<T>(eventid as unknown as T, conf, payload.length);
-        this.messageImp.setBody(payload);
+        this.setData(payload);
         this.messageImp.getHeader().setId(eventid);
         this.messageImp.getHeader().setConfig(conf as unknown as number);
         this.messageImp.getHeader().setSize(payload.length);
@@ -71,11 +71,20 @@ class Message<T> {
         return this.header.size;
     }
 
-    data(): string | undefined {
-        return this.messageImp.getBody();
+    data(bytes: boolean = false): string | Uint8Array {
+        if (bytes)
+        {
+            return this.messageImp.getBody();
+        }
+        
+        return new TextDecoder().decode(this.messageImp.getBody() as Uint8Array);
     }
-    
-    setData(data: string) {
+
+    setData(data: string | Uint8Array) {
+        if (typeof data === 'string' || data instanceof String)
+        {
+            data = new TextEncoder().encode(data as string);
+        }
         this.messageImp.setBody(data);
     }
     

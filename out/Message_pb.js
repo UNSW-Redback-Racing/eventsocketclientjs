@@ -1,4 +1,4 @@
-// source: Message.proto
+// source: src/Message.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -335,7 +335,7 @@ proto.EventSocket.Message.prototype.toObject = function(opt_includeInstance) {
 proto.EventSocket.Message.toObject = function(includeInstance, msg) {
   var f, obj = {
     header: (f = msg.getHeader()) && proto.EventSocket.MessageHeader.toObject(includeInstance, f),
-    body: (f = jspb.Message.getField(msg, 5)) == null ? undefined : f
+    body: msg.getBody_asB64()
   };
 
   if (includeInstance) {
@@ -378,7 +378,7 @@ proto.EventSocket.Message.deserializeBinaryFromReader = function(msg, reader) {
       msg.setHeader(value);
       break;
     case 5:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setBody(value);
       break;
     default:
@@ -418,9 +418,9 @@ proto.EventSocket.Message.serializeBinaryToWriter = function(message, writer) {
       proto.EventSocket.MessageHeader.serializeBinaryToWriter
     );
   }
-  f = /** @type {string} */ (jspb.Message.getField(message, 5));
+  f = /** @type {!(string|Uint8Array)} */ (jspb.Message.getField(message, 5));
   if (f != null) {
-    writer.writeString(
+    writer.writeBytes(
       5,
       f
     );
@@ -466,16 +466,40 @@ proto.EventSocket.Message.prototype.hasHeader = function() {
 
 
 /**
- * required string body = 5;
- * @return {string}
+ * required bytes body = 5;
+ * @return {!(string|Uint8Array)}
  */
 proto.EventSocket.Message.prototype.getBody = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
 };
 
 
 /**
- * @param {string} value
+ * required bytes body = 5;
+ * This is a type-conversion wrapper around `getBody()`
+ * @return {string}
+ */
+proto.EventSocket.Message.prototype.getBody_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getBody()));
+};
+
+
+/**
+ * required bytes body = 5;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getBody()`
+ * @return {!Uint8Array}
+ */
+proto.EventSocket.Message.prototype.getBody_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getBody()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.EventSocket.Message} returns this
  */
 proto.EventSocket.Message.prototype.setBody = function(value) {

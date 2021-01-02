@@ -43,16 +43,15 @@ var Connection = /** @class */ (function () {
             var _a;
             // Message object to contain data
             var message = new Message_1.Message();
-            message.deserializeBinary(new Uint8Array(stringToAB(ev.data.toString())));
+            message.deserializeBinary(new Uint8Array(ev.data));
             // Check if the message is broadcasted
             if (message.Config() == Message_1.Config.Broadcasted && _this.OnBroadCast) {
                 // Get the forwarder id
-                var data = message.data();
+                var data = message.data(true);
                 if (data) {
-                    var buf = stringToAB(data);
-                    var id = new Uint16Array(buf.slice(-2))[0];
-                    var remData = buf.slice(0, buf.byteLength - 2);
-                    message.setData(ABToString(remData));
+                    //const buf = stringToAB(data);
+                    var id = Buffer.from(data.slice(-4)).readUInt32LE();
+                    message.setData(data.slice(0, -4));
                     _this.OnBroadCast(message, id);
                 }
             }
@@ -69,13 +68,14 @@ var Connection = /** @class */ (function () {
             // Check if the message is forwarded
             else if (message.Config() == Message_1.Config.Forwarded && _this.OnForwarded) {
                 // Get the forwarder id
-                var data = message.data();
+                var data = message.data(true);
                 if (data) {
-                    var buf = stringToAB(data);
-                    console.log(buf);
-                    var id = new Uint16Array(buf.slice(-2))[0];
-                    var remData = buf.slice(0, buf.byteLength - 2);
-                    message.setData(ABToString(remData));
+                    console.log(data);
+                    console.log(ev.data);
+                    console.log(message);
+                    var id = Buffer.from(data.slice(-4)).readUInt32LE();
+                    //const remData = buf.slice(0, buf.byteLength - 2);
+                    message.setData(data.slice(0, -4));
                     _this.OnForwarded(message, id);
                 }
             }
@@ -106,15 +106,22 @@ var Connection = /** @class */ (function () {
         this.send(message);
     };
     Connection.prototype.forward = function (message, to) {
-        var payload = message.data();
+        var payload = message.data(true);
         if (!payload) {
-            payload = "";
+            payload = new Uint8Array();
         }
         // Combine data payload with the recp id
         var buf = new ArrayBuffer(4);
         var view = new Uint32Array(buf);
         view[0] = to;
-        message.setData(payload + ABToString(buf));
+        var idArr = new Uint8Array(buf);
+        var payloadArr = payload;
+        var resultArr = new Uint8Array(payloadArr.length + idArr.length);
+        resultArr.set(payloadArr);
+        resultArr.set(idArr, payloadArr.length);
+        console.log("payloadArr:", payloadArr);
+        console.log("resultArr: ", resultArr);
+        message.setData(resultArr);
         message.setConfig(Message_1.Config.Forward);
         this.send(message);
     };
@@ -127,10 +134,17 @@ var Connection = /** @class */ (function () {
             payload = "";
         }
         // Combine data payload with recp id
+        // Combine data payload with the recp id
         var buf = new ArrayBuffer(4);
         var view = new Uint32Array(buf);
         view[0] = roomid;
-        message.setData(payload + ABToString(buf));
+        var idArr = new Uint8Array(buf);
+        var payloadArr = payload;
+        var resultArr = new Uint8Array(payloadArr.length + idArr.length);
+        resultArr.set(payloadArr);
+        resultArr.set(idArr, payloadArr.length);
+        console.log("resultArr: ", resultArr);
+        message.setData(resultArr);
         message.setConfig(Message_1.Config.BroadcastRoom);
         this.send(message);
     };

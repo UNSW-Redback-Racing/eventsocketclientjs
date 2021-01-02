@@ -78,19 +78,18 @@ class Connection<T> {
             // Message object to contain data
             const message = new Message<T>(); 
             
-            message.deserializeBinary(new Uint8Array(stringToAB(ev.data.toString())));
+            message.deserializeBinary(new Uint8Array(ev.data as ArrayBuffer));
             
             // Check if the message is broadcasted
             if (message.Config() == Config.Broadcasted && this.OnBroadCast)
             {
                 // Get the forwarder id
-                const data = message.data();
+                const data: string | Uint8Array = message.data(true);
                 if (data)
                 {
-                    const buf = stringToAB(data);
-                    const id:number = new Uint16Array(buf.slice(-2))[0];
-                    const remData = buf.slice(0, buf.byteLength - 2);
-                    message.setData(ABToString(remData));
+                    //const buf = stringToAB(data);
+                    const id:number = Buffer.from(data.slice(-4)).readUInt32LE();
+                    message.setData(data.slice(0, -4));
                     this.OnBroadCast(message, id);
                 }
             }
@@ -99,8 +98,9 @@ class Connection<T> {
             {
                 const data = message.data();
                 if (data)
-                    this.OnRoomCreated(parseInt(data));
+                    this.OnRoomCreated(parseInt(data as string));
             }
+            
             // Check if the message is a room joining response
             else if (message.Config() == Config.OnRoomJoined && this.OnRoomJoined)
             {
@@ -110,15 +110,12 @@ class Connection<T> {
             else if (message.Config() == Config.Forwarded && this.OnForwarded)
             {
                 // Get the forwarder id
-                const data = message.data();
+                const data = message.data(true);
                 if (data)
                 {
-                    const buf = stringToAB(data);
-                    console.log(buf);
-                    const id:number = new Uint16Array(buf.slice(-2))[0];
-                    
-                    const remData = buf.slice(0, buf.byteLength - 2);
-                    message.setData(ABToString(remData));
+                    const id:number = Buffer.from(data.slice(-4)).readUInt32LE();
+                    //const remData = buf.slice(0, buf.byteLength - 2);
+                    message.setData(data.slice(0, -4));
                     this.OnForwarded(message, id);
 
                 }
@@ -162,18 +159,24 @@ class Connection<T> {
 
     public forward(message: Message<T>, to: number)
     {
-        let payload: string | undefined = message.data();
+        let payload: string | Uint8Array | undefined = message.data(true);
 
         if (!payload)
         {
-            payload = "";
+            payload = new Uint8Array();
         }
 
         // Combine data payload with the recp id
         const buf = new ArrayBuffer(4);
         const view = new Uint32Array(buf);
         view[0] = to;
-        message.setData(payload + ABToString(buf));
+        const idArr = new Uint8Array(buf);
+        const payloadArr = payload as Uint8Array;
+        const resultArr = new Uint8Array(payloadArr.length + idArr.length);
+        resultArr.set(payloadArr);
+        resultArr.set(idArr, payloadArr.length);
+
+        message.setData(resultArr);
         message.setConfig(Config.Forward);
         this.send(message);
     }
@@ -183,7 +186,7 @@ class Connection<T> {
      */
     public broadcastRoom(message: Message<T>, roomid: number)
     {
-        let payload: string | undefined = message.data();
+        let payload: string | Uint8Array | undefined = message.data(true);
         
         if (!payload)
         {
@@ -191,10 +194,16 @@ class Connection<T> {
         }
 
         // Combine data payload with recp id
+        // Combine data payload with the recp id
         const buf = new ArrayBuffer(4);
         const view = new Uint32Array(buf);
         view[0] = roomid;
-        message.setData(payload + ABToString(buf));
+        const idArr = new Uint8Array(buf);
+        const payloadArr = payload as Uint8Array;
+        const resultArr = new Uint8Array(payloadArr.length + idArr.length);
+        resultArr.set(payloadArr);
+        resultArr.set(idArr, payloadArr.length);
+        message.setData(resultArr);
         message.setConfig(Config.BroadcastRoom);
 
         this.send(message);
