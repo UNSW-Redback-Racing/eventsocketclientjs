@@ -11,8 +11,8 @@ export class Message<T> {
     constructor(data?: string, id?: T, config?: Config);
 
     size(): number;
-    data(): string | undefined;
-    setData(data: string);
+    data(bytes: boolean): string | Uint8Array;
+    setData(data: string | Uint8Array);
     setID(id: T);
     setConfig(config: Config);
     ID(): T;
