@@ -1,6 +1,6 @@
 {
   "name": "eventsocketclientjs",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Event based async networking framework for client applications",
   "main": "out/index.js",
   "files": [
