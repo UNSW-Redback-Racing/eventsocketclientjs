@@ -51,10 +51,10 @@ class Connection<T> {
         this.eventCallbacks = new Map();
     }
 
-    connectToServer(host: string, port: number): void {
+    connectToServer(url: string): void {
         
         // Create a websocket 
-        this.ws = new WebSocket("ws://" + host + ":" + port);
+        this.ws = new WebSocket(url);
         this.ws.binaryType = "arraybuffer";
         this.ws.onopen = (ev: WebSocket.OpenEvent) => {
             this.configure();
