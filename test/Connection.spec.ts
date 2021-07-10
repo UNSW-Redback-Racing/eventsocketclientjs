@@ -1,19 +1,21 @@
 // Test the validity of the Connection class
 import { Connection } from '../src/Connection';
-import WebSocket = require("../node_modules/@types/ws");
+import WebSocket = require('../node_modules/@types/ws');
 import { Message, Config} from '../src/Message';
 import { exception } from 'console';
+import { env } from 'process';
 
 interface Server {
-    host: string,
+    host: string ,
     port: number
 }
 
 enum EventTypes {
     Hello, World
 }
-
-const server: Server = {host: "127.0.0.1", port:60000};
+const host: string = process.env.HOST || 'localhost'
+const port: number = parseInt(process.env.PORT || '60000')
+const server: Server = { host: host, port: port };
 
 test('On connection successful', () => {
     return new Promise((resolve, reject) => {
@@ -26,7 +28,7 @@ test('On connection successful', () => {
             resolve('Got Message ' + msg.data());
         });
 
-        conn.connectToServer(server.host, server.port);
+        conn.connectToServer(`ws://${server.host}:${server.port}`);
     });
 }); 
 
@@ -41,7 +43,7 @@ test('Sending messages', () => {
         conn.OnEvent(EventTypes.Hello, (message:Message<EventTypes>) => {
             resolve('Receiving messages successful');
         });
-        conn.connectToServer(server.host, server.port);
+        conn.connectToServer(`ws://${server.host}:${server.port}`);
     });
 });
 
@@ -60,8 +62,8 @@ test('Broadcasting messages', () => {
         };
 
         // We launch the receiver first
-        connReceiver.connectToServer(server.host, server.port);
-        connBroadcaster.connectToServer(server.host, server.port);
+        connReceiver.connectToServer(`ws://${server.host}:${server.port}`);
+        connBroadcaster.connectToServer(`ws://${server.host}:${server.port}`);
     }).then((message) => {
         expect(message).toEqual("Hello!");
     });
@@ -93,8 +95,8 @@ test('Forwarding messages', () => {
         };
 
         // We launch the receiver first
-        connReceiver.connectToServer(server.host, server.port);
-        connBroadcaster.connectToServer(server.host, server.port);
+        connReceiver.connectToServer(`ws://${server.host}:${server.port}`);
+        connBroadcaster.connectToServer(`ws://${server.host}:${server.port}`);
     }).then((message) => {
         expect(message).toEqual(data);
     });
@@ -115,7 +117,7 @@ test('Creating rooms', () => {
             resolve(roomid);
         };
 
-        conn.connectToServer(server.host, server.port);
+        conn.connectToServer(`ws://${server.host}:${server.port}`);
     });
 });
 
@@ -143,8 +145,8 @@ test('Join room and broadcast room', () => {
             // Broadcast data to message
             connJoiner.broadcast(new Message<EventTypes>(data, EventTypes.Hello));
         };
-        connJoiner.connectToServer(server.host, server.port);
-        connCreator.connectToServer(server.host, server.port);
+        connJoiner.connectToServer(`ws://${server.host}:${server.port}`);
+        connCreator.connectToServer(`ws://${server.host}:${server.port}`);
     }).then((val) => {
         expect(val).toEqual(data);
     });
@@ -171,11 +173,11 @@ test('Auto reconnect', () => {
         conn.OnClose = (event: WebSocket.CloseEvent) => {
             // Try to reconnect again
             if (ntries != 2){
-                conn.connectToServer(server.host, server.port);
+                conn.connectToServer(`ws://${server.host}:${server.port}`);
             }
         }
 
-        conn.connectToServer(server.host, server.port);
+        conn.connectToServer(`ws://${server.host}:${server.port}`);
     }).then((val) => {
         expect(val).toEqual(2);
     });
