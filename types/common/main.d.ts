@@ -30,7 +30,7 @@ export type IOnClose<T> = (event: WebSocket.CloseEvent) => void;
 
 export class Connection<T> {
     constructor();
-    connectToServer(host: string, port: number): void;
+    connectToServer(url: string): void;
     private configure(): void;
     public OnEvent(event: T, callback: IOnEvent<T>);
     public send(message: Message<T>);
